@@ -116,7 +116,7 @@ def forecast_holt_winters(train, test_steps, forecast_steps, seasonal_periods=No
     series = train['y']
     series_min = series.min()
     series_max = series.max()
-    margin = (series_max - series_min) * 2
+    margin = (series_max - series_min) * 0.5
 
     # 계절 주기 자동 감지
     if seasonal_periods is None:
@@ -183,7 +183,7 @@ def forecast_arima(train, test_steps, forecast_steps, order=None):
         # ARIMA도 발산 방지
         series_min = series.min()
         series_max = series.max()
-        margin = (series_max - series_min) * 2
+        margin = (series_max - series_min) * 0.5
         if (all_forecast.min() < series_min - margin or
                 all_forecast.max() > series_max + margin):
             return _es_fallback(train, test_steps, forecast_steps,

@@ -590,28 +590,42 @@ else:
 
             # R² 게이지 차트
             st.markdown('<div class="section-title">📐 R² 결정계수</div>', unsafe_allow_html=True)
+
+            # R² 음수 경고
+            neg_r2_models = eval_df[eval_df['R²'] < 0]
+            if len(neg_r2_models) > 0:
+                neg_names = ', '.join(neg_r2_models['Model'].tolist())
+                st.warning(
+                    f"⚠️ **{neg_names}** 모델의 R²가 음수입니다. "
+                    f"이는 해당 모델의 예측이 단순 평균보다 부정확함을 의미합니다."
+                )
+
             r2_cols = st.columns(len(eval_df))
             for i, row in eval_df.iterrows():
                 with r2_cols[i]:
-                    r2_val = max(0, row['R²'])
+                    r2_raw = row['R²']
+                    r2_display = max(-1, min(1, r2_raw))
                     fig_gauge = go.Figure(go.Indicator(
                         mode="gauge+number",
-                        value=r2_val,
+                        value=r2_display,
                         title={'text': row['Model'], 'font': {'size': 13}},
                         gauge={
-                            'axis': {'range': [0, 1]},
-                            'bar': {'color': '#1f77b4'},
+                            'axis': {'range': [-1, 1]},
+                            'bar': {'color': '#d62728' if r2_raw < 0 else '#1f77b4'},
                             'steps': [
-                                {'range': [0, 0.5], 'color': '#ffcccc'},
-                                {'range': [0.5, 0.8], 'color': '#ffe4b5'},
+                                {'range': [-1, 0], 'color': '#ffcccc'},
+                                {'range': [0, 0.5], 'color': '#ffe4b5'},
+                                {'range': [0.5, 0.8], 'color': '#fff3cd'},
                                 {'range': [0.8, 1.0], 'color': '#ccffcc'},
                             ],
-                            'threshold': {'line': {'color': 'red', 'width': 2}, 'value': 0.8}
+                            'threshold': {'line': {'color': 'red', 'width': 2}, 'value': 0}
                         },
                         number={'valueformat': '.3f'}
                     ))
                     fig_gauge.update_layout(height=200, margin=dict(l=10,r=10,t=40,b=10))
                     st.plotly_chart(fig_gauge, use_container_width=True)
+                    if r2_raw < -1:
+                        st.caption(f"실제 R² = {r2_raw:.4f}")
 
             # 잔차 분석
             st.markdown('<div class="section-title">📉 잔차(Residual) 분석</div>', unsafe_allow_html=True)
@@ -671,6 +685,8 @@ else:
                 insights.append("❌ MAPE ≥ 20% → **낮은** 예측 정확도, 모델 재검토 필요")
             if best_row['R²'] > 0.8:
                 insights.append("📈 R² > 0.8 → 예측 모델이 **데이터 분산을 잘 설명**합니다.")
+            elif best_row['R²'] < 0:
+                insights.append(f"📉 R² = {best_row['R²']:.4f} (음수) → 예측이 단순 평균보다 부정확합니다. 다른 모델이나 파라미터 조정을 권장합니다.")
 
             for ins in insights:
                 st.markdown(ins)
